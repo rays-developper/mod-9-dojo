@@ -697,11 +697,13 @@
         // 正しい積のMod9を取得し、それとは異なるMod9値になるようにオフセットを加算する
         const correctMod = mod9(correctProduct);
         let offset;
+        let candidate;
         do {
           // ±1〜±数百の範囲でずらす
           offset = randInt(1, 100) * (Math.random() < 0.5 ? 1 : -1);
-        } while (mod9(correctProduct + offset) === correctMod || correctProduct + offset < 0);
-        displayProduct = correctProduct + offset;
+          candidate = correctProduct + offset;
+        } while (candidate < 1 || mod9(candidate) === correctMod);
+        displayProduct = candidate;
       }
 
       auditState.isCorrectAnswer = isCorrect;
@@ -851,11 +853,12 @@
     // ===================================================================
     document.addEventListener('keydown', (e) => {
       const key = e.key;
+      const activePanel = document.querySelector('.panel.active');
+
       // 数字キー 0-9
       if (key >= '0' && key <= '9') {
         const num = parseInt(key, 10);
         // 現在アクティブなパネルに応じて処理を分岐
-        const activePanel = document.querySelector('.panel.active');
         if (activePanel.id === 'panel-training') {
           answerTraining(num);
         } else if (activePanel.id === 'panel-timeattack' && taState.running) {
@@ -864,7 +867,6 @@
       }
 
       // Audit Mode用: P=Pass, E=Error
-      const activePanel = document.querySelector('.panel.active');
       if (activePanel.id === 'panel-audit') {
         if (key === 'p' || key === 'P') {
           answerAudit(true);
