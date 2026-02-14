@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mod9 Dojo - 九去法トレーニング</title>
+  <style>
+    /* ===== Reset & Base ===== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #000;
+      --green: #0f0;
+      --green-dim: #0a0;
+      --green-dark: #050;
+      --green-glow: rgba(0, 255, 0, 0.3);
+      --red: #f44;
+      --yellow: #ff0;
+      --font: 'Courier New', Courier, monospace;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--green);
+      font-family: var(--font);
+      overflow-x: hidden;
+    }
+
+    /* ===== CRT Scanline Overlay ===== */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15) 0px,
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ===== Layout ===== */
+    #app {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== Header ===== */
+    header {
+      text-align: center;
+      padding: 16px 0 8px;
+      border-bottom: 1px solid var(--green-dark);
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      text-shadow: 0 0 10px var(--green-glow);
+      letter-spacing: 4px;
+    }
+
+    header p {
+      font-size: 0.75rem;
+      color: var(--green-dim);
+      margin-top: 4px;
+    }
+
+    /* ===== Mode Tabs ===== */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin: 12px 0;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      flex: 1;
+      min-width: 120px;
+      padding: 10px 8px;
+      background: transparent;
+      color: var(--green-dim);
+      border: 1px solid var(--green-dark);
+      font-family: var(--font);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .tab-btn:hover {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .tab-btn.active {
+      background: var(--green-dark);
+      color: var(--green);
+      border-color: var(--green);
+      text-shadow: 0 0 6px var(--green-glow);
+    }
+
+    /* ===== Panels ===== */
+    .panel {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+    }
+
+    .panel.active {
+      display: flex;
+    }
+
+    /* ===== Question Display ===== */
+    .question-area {
+      text-align: center;
+      padding: 24px 0;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .question-number {
+      font-size: 2.8rem;
+      text-shadow: 0 0 20px var(--green-glow);
+      letter-spacing: 8px;
+      word-break: break-all;
+    }
+
+    .question-expr {
+      font-size: 1.6rem;
+      text-shadow: 0 0 15px var(--green-glow);
+      letter-spacing: 2px;
+      line-height: 1.6;
+    }
+
+    /* ===== Feedback ===== */
+    .feedback {
+      text-align: center;
+      min-height: 40px;
+      font-size: 1.2rem;
+      padding: 8px;
+      transition: opacity 0.3s;
+    }
+
+    .feedback.ok {
+      color: var(--green);
+      text-shadow: 0 0 10px var(--green-glow);
+    }
+
+    .feedback.ng {
+      color: var(--red);
+      text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+    }
+
+    /* ===== Numpad ===== */
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      padding: 8px 0;
+      max-width: 400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .num-btn {
+      padding: 16px 0;
+      background: transparent;
+      color: var(--green);
+      border: 1px solid var(--green-dark);
+      font-family: var(--font);
+      font-size: 1.4rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    .num-btn:hover {
+      background: var(--green-dark);
+      text-shadow: 0 0 8px var(--green-glow);
+    }
+
+    .num-btn:active {
+      background: var(--green);
+      color: var(--bg);
+    }
+
+    /* ===== Audit Buttons ===== */
+    .audit-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      padding: 16px 0;
+    }
+
+    .audit-btn {
+      padding: 16px 32px;
+      background: transparent;
+      font-family: var(--font);
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    .audit-btn.pass {
+      color: var(--green);
+      border: 2px solid var(--green);
+    }
+
+    .audit-btn.pass:hover {
+      background: var(--green-dark);
+      text-shadow: 0 0 8px var(--green-glow);
+    }
+
+    .audit-btn.error {
+      color: var(--red);
+      border: 2px solid var(--red);
+    }
+
+    .audit-btn.error:hover {
+      background: rgba(255, 68, 68, 0.15);
+      text-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+    }
+
+    /* ===== Stats ===== */
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0;
+      border-top: 1px solid var(--green-dark);
+      font-size: 0.8rem;
+      color: var(--green-dim);
+    }
+
+    .stats span {
+      text-align: center;
+    }
+
+    .stats .value {
+      display: block;
+      font-size: 1.2rem;
+      color: var(--green);
+    }
+
+    /* ===== Time Attack ===== */
+    .ta-controls {
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    .ta-start-btn {
+      padding: 14px 40px;
+      background: transparent;
+      color: var(--green);
+      border: 2px solid var(--green);
+      font-family: var(--font);
+      font-size: 1.2rem;
+      cursor: pointer;
+      text-shadow: 0 0 8px var(--green-glow);
+      transition: all 0.2s;
+    }
+
+    .ta-start-btn:hover {
+      background: var(--green-dark);
+    }
+
+    .timer-bar {
+      height: 4px;
+      background: var(--green-dark);
+      margin: 8px 0;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .timer-bar-fill {
+      height: 100%;
+      background: var(--green);
+      width: 100%;
+      transition: width 0.1s linear;
+      box-shadow: 0 0 6px var(--green-glow);
+    }
+
+    .timer-display {
+      text-align: center;
+      font-size: 1.4rem;
+      padding: 4px;
+      text-shadow: 0 0 10px var(--green-glow);
+    }
+
+    /* ===== Result Screen ===== */
+    .result-screen {
+      text-align: center;
+      padding: 24px 0;
+    }
+
+    .result-screen h2 {
+      font-size: 1.4rem;
+      margin-bottom: 16px;
+      text-shadow: 0 0 10px var(--green-glow);
+    }
+
+    .result-screen .score-line {
+      font-size: 1rem;
+      margin: 8px 0;
+      color: var(--green-dim);
+    }
+
+    .result-screen .score-line .value {
+      color: var(--green);
+      font-size: 1.3rem;
+    }
+
+    .share-btn {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 10px 24px;
+      background: transparent;
+      color: var(--green);
+      border: 1px solid var(--green);
+      font-family: var(--font);
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .share-btn:hover {
+      background: var(--green-dark);
+      text-shadow: 0 0 6px var(--green-glow);
+    }
+
+    .retry-btn {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 10px 24px;
+      background: transparent;
+      color: var(--green-dim);
+      border: 1px solid var(--green-dark);
+      font-family: var(--font);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .retry-btn:hover {
+      color: var(--green);
+      border-color: var(--green);
+    }
+
+    /* ===== Instructions ===== */
+    .instructions {
+      font-size: 0.75rem;
+      color: var(--green-dark);
+      text-align: center;
+      padding: 8px 0;
+      line-height: 1.6;
+    }
+
+    .instructions strong {
+      color: var(--green-dim);
+    }
+
+    /* ===== Footer ===== */
+    footer {
+      text-align: center;
+      padding: 12px 0;
+      font-size: 0.65rem;
+      color: var(--green-dark);
+      border-top: 1px solid var(--green-dark);
+      margin-top: auto;
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 480px) {
+      header h1 {
+        font-size: 1.2rem;
+        letter-spacing: 2px;
+      }
+
+      .question-number {
+        font-size: 2.2rem;
+        letter-spacing: 4px;
+      }
+
+      .question-expr {
+        font-size: 1.2rem;
+      }
+
+      .num-btn {
+        padding: 14px 0;
+        font-size: 1.2rem;
+      }
+
+      .tab-btn {
+        font-size: 0.7rem;
+        padding: 8px 4px;
+        min-width: 90px;
+      }
+
+      .audit-btn {
+        padding: 14px 20px;
+        font-size: 1rem;
+      }
+    }
+
+    /* ===== Blink animation for cursor ===== */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .cursor-blink::after {
+      content: '█';
+      animation: blink 1s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header>
+      <h1>MOD9 DOJO</h1>
+      <p>// 九去法トレーニング・システム</p>
+    </header>
+
+    <!-- Mode Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-mode="training">▶ Training</button>
+      <button class="tab-btn" data-mode="audit">▶ Audit</button>
+      <button class="tab-btn" data-mode="timeattack">▶ Time Attack</button>
+    </div>
+
+    <!-- ===== Training Panel ===== -->
+    <div class="panel active" id="panel-training">
+      <div class="instructions">
+        <strong>[ Checksum Training ]</strong><br>
+        表示された数字の各桁を足し、1桁になるまで繰り返せ。<br>
+        キーボード (0-9) でも入力可能。
+      </div>
+      <div class="question-area">
+        <div class="question-number" id="training-question">---</div>
+      </div>
+      <div class="feedback" id="training-feedback">&nbsp;</div>
+      <div class="numpad" id="training-numpad"></div>
+      <div class="stats" id="training-stats">
+        <span>正解 <span class="value" id="training-correct">0</span></span>
+        <span>問題数 <span class="value" id="training-total">0</span></span>
+        <span>正答率 <span class="value" id="training-rate">--%</span></span>
+      </div>
+    </div>
+
+    <!-- ===== Audit Panel ===== -->
+    <div class="panel" id="panel-audit">
+      <div class="instructions">
+        <strong>[ Audit Mode ]</strong><br>
+        掛け算の式が正しいかMod9検算で判定せよ。<br>
+        Mod9が整合なら Pass、不整合なら Error。
+      </div>
+      <div class="question-area">
+        <div class="question-expr" id="audit-question">---</div>
+      </div>
+      <div class="feedback" id="audit-feedback">&nbsp;</div>
+      <div class="audit-buttons">
+        <button class="audit-btn pass" id="audit-pass">✅ Pass</button>
+        <button class="audit-btn error" id="audit-error">❌ Error</button>
+      </div>
+      <div class="stats" id="audit-stats">
+        <span>正解 <span class="value" id="audit-correct">0</span></span>
+        <span>問題数 <span class="value" id="audit-total">0</span></span>
+        <span>正答率 <span class="value" id="audit-rate">--%</span></span>
+      </div>
+    </div>
+
+    <!-- ===== Time Attack Panel ===== -->
+    <div class="panel" id="panel-timeattack">
+      <div class="instructions">
+        <strong>[ Time Attack ]</strong><br>
+        60秒間でできるだけ多くの問題を解け！
+      </div>
+
+      <!-- Pre-game -->
+      <div id="ta-pregame">
+        <div class="ta-controls">
+          <button class="ta-start-btn" id="ta-start">[ START ]</button>
+        </div>
+      </div>
+
+      <!-- In-game -->
+      <div id="ta-ingame" style="display:none;">
+        <div class="timer-display" id="ta-timer">60.0</div>
+        <div class="timer-bar"><div class="timer-bar-fill" id="ta-bar"></div></div>
+        <div class="question-area">
+          <div class="question-number" id="ta-question">---</div>
+        </div>
+        <div class="feedback" id="ta-feedback">&nbsp;</div>
+        <div class="numpad" id="ta-numpad"></div>
+        <div class="stats">
+          <span>正解 <span class="value" id="ta-correct">0</span></span>
+          <span>問題数 <span class="value" id="ta-total">0</span></span>
+        </div>
+      </div>
+
+      <!-- Post-game -->
+      <div id="ta-postgame" style="display:none;">
+        <div class="result-screen">
+          <h2>== RESULT ==</h2>
+          <div class="score-line">正解数: <span class="value" id="ta-result-correct">0</span></div>
+          <div class="score-line">問題数: <span class="value" id="ta-result-total">0</span></div>
+          <div class="score-line">正答率: <span class="value" id="ta-result-rate">0%</span></div>
+          <div class="score-line">速度: <span class="value" id="ta-result-speed">0.00</span> checksums/sec</div>
+          <br>
+          <a class="share-btn" id="ta-share" href="#" target="_blank" rel="noopener noreferrer">📤 Xでシェア</a>
+          <br>
+          <button class="retry-btn" id="ta-retry">🔄 もう一度</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      MOD9 DOJO v1.0 | GitHub Pages
+    </footer>
+  </div>
+
+  <script>
+    'use strict';
+
+    // ===================================================================
+    // Mod9 (Digital Root) 計算
+    // 与えられた整数のデジタルルートを返す。
+    // 0 -> 0, それ以外 -> (n - 1) % 9 + 1
+    // ===================================================================
+    function mod9(n) {
+      n = Math.abs(n);
+      if (n === 0) return 0;
+      return ((n - 1) % 9) + 1;
+    }
+
+    // ===================================================================
+    // ランダム整数生成 (min以上max以下)
+    // ===================================================================
+    function randInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // ===================================================================
+    // ランダムな3〜6桁の整数を生成
+    // ===================================================================
+    function generateNumber() {
+      const digits = randInt(3, 6);
+      const min = Math.pow(10, digits - 1);
+      const max = Math.pow(10, digits) - 1;
+      return randInt(min, max);
+    }
+
+    // ===================================================================
+    // テンキー (0-9) を生成してコンテナに挿入する
+    // ===================================================================
+    function createNumpad(container, callback) {
+      container.innerHTML = '';
+      // 1-9, then 0 の配置（2行 x 5列）
+      const keys = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+      keys.forEach(n => {
+        const btn = document.createElement('button');
+        btn.className = 'num-btn';
+        btn.textContent = n;
+        btn.setAttribute('data-num', n);
+        btn.addEventListener('click', () => callback(n));
+        container.appendChild(btn);
+      });
+    }
+
+    // ===================================================================
+    // フィードバック表示
+    // ===================================================================
+    function showFeedback(el, isCorrect, message) {
+      el.textContent = message;
+      el.className = 'feedback ' + (isCorrect ? 'ok' : 'ng');
+      // 1.2秒後にクリア
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => {
+        el.innerHTML = '&nbsp;';
+        el.className = 'feedback';
+      }, 1200);
+    }
+
+    // ===================================================================
+    // Mode Tabs
+    // ===================================================================
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.panel');
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        tabButtons.forEach(b => b.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('panel-' + mode).classList.add('active');
+
+        // タイムアタック実行中にタブ切り替えした場合はリセット
+        if (mode !== 'timeattack' && taState.running) {
+          stopTimeAttack();
+        }
+      });
+    });
+
+    // ===================================================================
+    // Training Mode
+    // ===================================================================
+    const trainingState = { correct: 0, total: 0, currentNumber: 0 };
+
+    const trainingQuestion = document.getElementById('training-question');
+    const trainingFeedback = document.getElementById('training-feedback');
+    const trainingNumpad = document.getElementById('training-numpad');
+    const trainingCorrectEl = document.getElementById('training-correct');
+    const trainingTotalEl = document.getElementById('training-total');
+    const trainingRateEl = document.getElementById('training-rate');
+
+    function newTrainingQuestion() {
+      trainingState.currentNumber = generateNumber();
+      trainingQuestion.textContent = trainingState.currentNumber.toLocaleString().replace(/,/g, ' ');
+    }
+
+    function answerTraining(n) {
+      const correct = mod9(trainingState.currentNumber);
+      trainingState.total++;
+      if (n === correct) {
+        trainingState.correct++;
+        showFeedback(trainingFeedback, true, '✔ OK');
+      } else {
+        showFeedback(trainingFeedback, false, '✘ NG — 正解: ' + correct);
+      }
+      updateTrainingStats();
+      newTrainingQuestion();
+    }
+
+    function updateTrainingStats() {
+      trainingCorrectEl.textContent = trainingState.correct;
+      trainingTotalEl.textContent = trainingState.total;
+      trainingRateEl.textContent = trainingState.total > 0
+        ? Math.round((trainingState.correct / trainingState.total) * 100) + '%'
+        : '--%';
+    }
+
+    createNumpad(trainingNumpad, answerTraining);
+    newTrainingQuestion();
+
+    // ===================================================================
+    // Audit Mode
+    // ===================================================================
+    const auditState = { correct: 0, total: 0, isCorrectAnswer: true };
+
+    const auditQuestion = document.getElementById('audit-question');
+    const auditFeedback = document.getElementById('audit-feedback');
+    const auditPassBtn = document.getElementById('audit-pass');
+    const auditErrorBtn = document.getElementById('audit-error');
+    const auditCorrectEl = document.getElementById('audit-correct');
+    const auditTotalEl = document.getElementById('audit-total');
+    const auditRateEl = document.getElementById('audit-rate');
+
+    /**
+     * Audit用の掛け算問題を生成する。
+     * isCorrect: true なら正しい積、false ならMod9がズレた間違い積を生成。
+     */
+    function generateAuditQuestion() {
+      const a = randInt(10, 999);
+      const b = randInt(10, 999);
+      const correctProduct = a * b;
+      // 50%の確率で正しい / 間違いを出す
+      const isCorrect = Math.random() < 0.5;
+
+      let displayProduct;
+      if (isCorrect) {
+        displayProduct = correctProduct;
+      } else {
+        // Mod9が異なるように積を変更する
+        // 正しい積のMod9を取得し、それとは異なるMod9値になるようにオフセットを加算する
+        const correctMod = mod9(correctProduct);
+        let offset;
+        do {
+          // ±1〜±数百の範囲でずらす
+          offset = randInt(1, 100) * (Math.random() < 0.5 ? 1 : -1);
+        } while (mod9(correctProduct + offset) === correctMod || correctProduct + offset < 0);
+        displayProduct = correctProduct + offset;
+      }
+
+      auditState.isCorrectAnswer = isCorrect;
+      auditQuestion.textContent = a + ' × ' + b + ' = ' + displayProduct;
+    }
+
+    function answerAudit(userSaysPass) {
+      auditState.total++;
+      const isUserCorrect = (userSaysPass === auditState.isCorrectAnswer);
+      if (isUserCorrect) {
+        auditState.correct++;
+        showFeedback(auditFeedback, true, '✔ 正解!');
+      } else {
+        const reason = auditState.isCorrectAnswer ? '式は正しかった' : '式は間違いだった';
+        showFeedback(auditFeedback, false, '✘ 不正解 — ' + reason);
+      }
+      updateAuditStats();
+      generateAuditQuestion();
+    }
+
+    function updateAuditStats() {
+      auditCorrectEl.textContent = auditState.correct;
+      auditTotalEl.textContent = auditState.total;
+      auditRateEl.textContent = auditState.total > 0
+        ? Math.round((auditState.correct / auditState.total) * 100) + '%'
+        : '--%';
+    }
+
+    auditPassBtn.addEventListener('click', () => answerAudit(true));
+    auditErrorBtn.addEventListener('click', () => answerAudit(false));
+    generateAuditQuestion();
+
+    // ===================================================================
+    // Time Attack Mode
+    // ===================================================================
+    const TA_DURATION = 60; // 秒
+    const taState = {
+      running: false,
+      correct: 0,
+      total: 0,
+      currentNumber: 0,
+      startTime: 0,
+      timerId: null
+    };
+
+    const taPregame = document.getElementById('ta-pregame');
+    const taIngame = document.getElementById('ta-ingame');
+    const taPostgame = document.getElementById('ta-postgame');
+    const taStartBtn = document.getElementById('ta-start');
+    const taTimer = document.getElementById('ta-timer');
+    const taBar = document.getElementById('ta-bar');
+    const taQuestion = document.getElementById('ta-question');
+    const taFeedback = document.getElementById('ta-feedback');
+    const taNumpad = document.getElementById('ta-numpad');
+    const taCorrectEl = document.getElementById('ta-correct');
+    const taTotalEl = document.getElementById('ta-total');
+    const taResultCorrect = document.getElementById('ta-result-correct');
+    const taResultTotal = document.getElementById('ta-result-total');
+    const taResultRate = document.getElementById('ta-result-rate');
+    const taResultSpeed = document.getElementById('ta-result-speed');
+    const taShareLink = document.getElementById('ta-share');
+    const taRetryBtn = document.getElementById('ta-retry');
+
+    function newTaQuestion() {
+      taState.currentNumber = generateNumber();
+      taQuestion.textContent = taState.currentNumber.toLocaleString().replace(/,/g, ' ');
+    }
+
+    function answerTimeAttack(n) {
+      if (!taState.running) return;
+      const correct = mod9(taState.currentNumber);
+      taState.total++;
+      if (n === correct) {
+        taState.correct++;
+        showFeedback(taFeedback, true, '✔');
+      } else {
+        showFeedback(taFeedback, false, '✘ ' + correct);
+      }
+      taCorrectEl.textContent = taState.correct;
+      taTotalEl.textContent = taState.total;
+      newTaQuestion();
+    }
+
+    function startTimeAttack() {
+      taState.running = true;
+      taState.correct = 0;
+      taState.total = 0;
+      taState.startTime = Date.now();
+      taCorrectEl.textContent = '0';
+      taTotalEl.textContent = '0';
+
+      taPregame.style.display = 'none';
+      taPostgame.style.display = 'none';
+      taIngame.style.display = 'block';
+
+      newTaQuestion();
+
+      // タイマー更新 (100ms毎)
+      taState.timerId = setInterval(() => {
+        const elapsed = (Date.now() - taState.startTime) / 1000;
+        const remaining = Math.max(0, TA_DURATION - elapsed);
+        taTimer.textContent = remaining.toFixed(1);
+        taBar.style.width = ((remaining / TA_DURATION) * 100) + '%';
+
+        if (remaining <= 0) {
+          stopTimeAttack();
+        }
+      }, 100);
+    }
+
+    function stopTimeAttack() {
+      taState.running = false;
+      clearInterval(taState.timerId);
+      taIngame.style.display = 'none';
+      taPostgame.style.display = 'block';
+
+      const rate = taState.total > 0
+        ? Math.round((taState.correct / taState.total) * 100) + '%'
+        : '0%';
+      const speed = (taState.correct / TA_DURATION).toFixed(2);
+
+      taResultCorrect.textContent = taState.correct;
+      taResultTotal.textContent = taState.total;
+      taResultRate.textContent = rate;
+      taResultSpeed.textContent = speed;
+
+      // Xシェアリンク作成
+      const text = encodeURIComponent(
+        '【MOD9 DOJO】Time Attack Result\n' +
+        '正解: ' + taState.correct + '/' + taState.total + '\n' +
+        '正答率: ' + rate + '\n' +
+        '速度: ' + speed + ' checksums/sec\n' +
+        '#Mod9Dojo #九去法'
+      );
+      taShareLink.href = 'https://x.com/intent/tweet?text=' + text;
+    }
+
+    createNumpad(taNumpad, answerTimeAttack);
+    taStartBtn.addEventListener('click', startTimeAttack);
+    taRetryBtn.addEventListener('click', () => {
+      taPostgame.style.display = 'none';
+      taPregame.style.display = 'block';
+    });
+
+    // ===================================================================
+    // Keyboard Support (0-9 キー入力)
+    // ===================================================================
+    document.addEventListener('keydown', (e) => {
+      const key = e.key;
+      // 数字キー 0-9
+      if (key >= '0' && key <= '9') {
+        const num = parseInt(key, 10);
+        // 現在アクティブなパネルに応じて処理を分岐
+        const activePanel = document.querySelector('.panel.active');
+        if (activePanel.id === 'panel-training') {
+          answerTraining(num);
+        } else if (activePanel.id === 'panel-timeattack' && taState.running) {
+          answerTimeAttack(num);
+        }
+      }
+
+      // Audit Mode用: P=Pass, E=Error
+      const activePanel = document.querySelector('.panel.active');
+      if (activePanel.id === 'panel-audit') {
+        if (key === 'p' || key === 'P') {
+          answerAudit(true);
+        } else if (key === 'e' || key === 'E') {
+          answerAudit(false);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
