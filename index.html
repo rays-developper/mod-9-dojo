@@ -484,7 +484,7 @@
       <div class="instructions">
         <strong>[ Checksum Training ]</strong><br>
         表示された数字の各桁を足し、1桁になるまで繰り返せ。<br>
-        キーボード (0-8) でも入力可能。
+        キーボード (0-9) でも入力可能。
       </div>
       <div class="question-area">
         <div class="question-number" id="training-question">---</div>
@@ -601,18 +601,27 @@
     }
 
     // ===================================================================
-    // テンキー (0-8) を生成してコンテナに挿入する
+    // テンキー (3x3レイアウト) を生成してコンテナに挿入する
+    // 1,2,3 / 4,5,6 / 7,8,0 の配置（電卓風）
     // ===================================================================
     function createNumpad(container, callback) {
       container.innerHTML = '';
-      // 0-8 の配置（2行 x 5列で9個）
-      const keys = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+      // 3x3 の配置（電卓・携帯電話風）
+      const keys = [1, 2, 3, 4, 5, 6, 7, 8, 0];
       keys.forEach(n => {
         const btn = document.createElement('button');
         btn.className = 'num-btn';
-        btn.textContent = n;
-        btn.setAttribute('data-num', n);
-        btn.addEventListener('click', () => callback(n));
+        // 右下のボタンは0と9の両方を表示
+        if (n === 0) {
+          btn.textContent = '0 / 9';
+          btn.setAttribute('data-num', '0');
+          // 0または9の入力を処理（mod9では0と9は同等）
+          btn.addEventListener('click', () => callback(0));
+        } else {
+          btn.textContent = n;
+          btn.setAttribute('data-num', n);
+          btn.addEventListener('click', () => callback(n));
+        }
         container.appendChild(btn);
       });
     }
@@ -883,14 +892,16 @@
       const key = e.key;
       const activePanel = document.querySelector('.panel.active');
 
-      // 数字キー 0-8
-      if (key >= '0' && key <= '8') {
+      // 数字キー 0-9
+      if (key >= '0' && key <= '9') {
         const num = parseInt(key, 10);
+        // mod9では0と9は同じ
+        const normalizedNum = num % 9;
         // 現在アクティブなパネルに応じて処理を分岐
         if (activePanel.id === 'panel-training') {
-          answerTraining(num);
+          answerTraining(normalizedNum);
         } else if (activePanel.id === 'panel-timeattack' && taState.running) {
-          answerTimeAttack(num);
+          answerTimeAttack(normalizedNum);
         }
       }
 
